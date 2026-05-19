@@ -1,4 +1,7 @@
-use arcdps::{evtc::AgentKind, Activation, Agent};
+use arcdps::{
+    Agent,
+    evtc::{AgentKind, animation::AnimationProgress},
+};
 
 /// Information about a cast (activation).
 #[derive(Debug, Clone)]
@@ -92,12 +95,12 @@ pub enum CastState {
     Interrupt,
 }
 
-impl From<Activation> for CastState {
-    fn from(activation: Activation) -> Self {
-        match activation {
-            Activation::Reset => Self::Fire,
-            Activation::CancelFire => Self::Cancel,
-            Activation::CancelCancel => Self::Interrupt,
+impl From<AnimationProgress> for CastState {
+    fn from(progress: AnimationProgress) -> Self {
+        match progress {
+            AnimationProgress::Reset => Self::Fire,
+            AnimationProgress::Minimum => Self::Cancel,
+            AnimationProgress::Cancel => Self::Interrupt,
             _ => Self::Unknown,
         }
     }

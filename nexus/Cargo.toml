@@ -1,0 +1,21 @@
+[package]
+name = "nexus_buddy"
+version = "0.1.0"
+edition = "2024"
+authors = ["Zerthox"]
+repository = "https://github.com/zerthox/arcdps-buddy"
+
+[dependencies]
+buddy = { path = "../core" }
+nexus = { git = "https://github.com/zerthox/nexus-rs", features = ["arc"] }
+log = { workspace = true }
+
+[build-dependencies]
+winresource = "0.1.17"
+
+[lib]
+crate-type = ["cdylib"]
+
+[package.metadata.winresource]
+ProductName = "Nexus Buddy"
+OriginalFilename = "nexus_buddy.dll"

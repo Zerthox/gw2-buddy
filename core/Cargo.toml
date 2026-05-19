@@ -1,0 +1,29 @@
+[package]
+name = "buddy"
+version = "0.7.0"
+edition = "2024"
+authors = ["Zerthox"]
+repository = "https://github.com/zerthox/arcdps-buddy"
+
+[dependencies]
+arc_util = { git = "https://github.com/zerthox/arcdps-utils", features = [
+    "serde",
+    "settings",
+] }
+arcdps = { git = "https://github.com/zerthox/arcdps-rs", features = [
+    "log",
+    "serde",
+    "strum",
+] }
+log = { workspace = true, features = ["release_max_level_info"] }
+num_enum = "0.7.1"
+semver = { workspace = true }
+serde = { version = "1.0.163", features = ["derive"] }
+serde_yaml = "0.9.21"
+strum = { version = "0.26.3", features = ["derive"] }
+
+[build-dependencies]
+proc-macro2 = "1.0.59"
+quote = "1.0.28"
+serde = { version = "1.0.163", features = ["derive"] }
+serde_yaml = "0.9.21"

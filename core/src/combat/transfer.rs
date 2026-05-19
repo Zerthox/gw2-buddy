@@ -1,5 +1,4 @@
 use super::agent::Agent;
-use log::debug;
 
 pub use crate::data::Condition;
 
@@ -40,9 +39,9 @@ impl TransferTracker {
     /// Adds a new condition remove.
     pub fn add_remove(&mut self, remove: Remove) {
         self.purge(remove.time);
-        debug!("transfer candidate {remove:?}");
+        log::debug!("transfer candidate {remove:?}");
         if let Some(apply) = Self::find_take(&mut self.apply, |apply| apply.matches(&remove)) {
-            debug!("transfer match {remove:?} {apply:?}");
+            log::debug!("transfer match {remove:?} {apply:?}");
             self.add_transfer(apply)
         } else {
             self.remove.push(remove)
@@ -52,9 +51,9 @@ impl TransferTracker {
     /// Adds a new condition apply.
     pub fn add_apply(&mut self, apply: Apply) {
         self.purge(apply.time);
-        debug!("transfer candidate {apply:?}");
+        log::debug!("transfer candidate {apply:?}");
         if let Some(remove) = Self::find_take(&mut self.remove, |remove| apply.matches(remove)) {
-            debug!("transfer match {apply:?} {remove:?}");
+            log::debug!("transfer match {apply:?} {remove:?}");
             self.add_transfer(apply)
         } else {
             self.apply.push(apply)
@@ -70,9 +69,9 @@ impl TransferTracker {
             .find(|other| transfer.is_group(other))
         {
             existing.stacks += 1;
-            debug!("transfer update {existing:?}");
+            log::debug!("transfer update {existing:?}");
         } else {
-            debug!("transfer new {transfer:?}");
+            log::debug!("transfer new {transfer:?}");
             self.transfers.push(transfer)
         }
     }

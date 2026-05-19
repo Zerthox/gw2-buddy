@@ -2,25 +2,17 @@
 mod skill_def;
 
 use proc_macro2::TokenStream;
-use quote::{quote, ToTokens};
+use quote::{ToTokens, quote};
 use skill_def::SkillDef;
 use std::{
     env,
     fs::{self, File},
     path::PathBuf,
 };
-use winresource::WindowsResource;
 
 fn main() {
     let manifest = env::var_os("CARGO_MANIFEST_DIR").unwrap();
     let out_dir = env::var_os("OUT_DIR").unwrap();
-    let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
-
-    if target_os == "windows" {
-        if let Err(err) = WindowsResource::new().compile() {
-            println!("cargo:warning=failed to compile windows resource: {err}");
-        }
-    }
 
     let in_dir = PathBuf::from(manifest).join("src/data/skills");
     let files = fs::read_dir(in_dir)

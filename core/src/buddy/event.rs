@@ -1,87 +1,85 @@
-use super::Plugin;
-use crate::combat::{
-    breakbar::BreakbarHit,
-    buff::{Buff, BuffApply},
-    cast::{Cast, CastState},
-    player::Player,
-    transfer::{Apply, Condition, Remove},
+use crate::{
+    Buddy, Handler,
+    combat::{
+        breakbar::BreakbarHit,
+        buff::{Buff, BuffApply},
+        cast::{Cast, CastState},
+        player::Player,
+        transfer::{Apply, Condition, Remove},
+    },
 };
-use arcdps::{evtc::EventCategory, Activation, Agent, BuffRemove, Event, StateChange, Strike};
-use log::debug;
+use arcdps::{Agent, CombatResult, Event, StateChange};
 
-impl Plugin {
-    /// Handles a combat event from area stats.
+impl<T> Buddy<T>
+where
+    T: Handler,
+{
     pub fn area_event(
+        &mut self,
         event: Option<&Event>,
         src: Option<&Agent>,
         dst: Option<&Agent>,
         skill_name: Option<&str>,
-        _event_id: u64,
-        _revision: u64,
     ) {
         if let Some(src) = src {
             if let Some(event) = event {
                 let src_self = src.is_self != 0;
-                match event.categorize() {
-                    EventCategory::StateChange => match event.get_statechange() {
-                        StateChange::SquadCombatStart => Self::lock().start_fight(event, dst),
-                        StateChange::LogNPCUpdate => Self::lock().fight_target(event, dst),
-                        StateChange::SquadCombatEnd => Self::lock().end_fight(event, dst),
-                        _ => {}
-                    },
+                match event.get_statechange() {
+                    StateChange::SquadCombatStart => self.start_fight(event, dst),
 
-                    EventCategory::Activation if src_self => {
-                        let mut plugin = Self::lock();
-                        if let Some(time) = plugin.history.relative_time(event.time) {
-                            if plugin.data.contains(event.skill_id) {
-                                match event.get_activation() {
-                                    Activation::Start => plugin.cast_start(event, skill_name, time),
-                                    Activation::CancelFire
-                                    | Activation::CancelCancel
-                                    | Activation::Reset => plugin.cast_end(event, skill_name, time),
-                                    _ => {}
-                                }
+                    StateChange::LogNPCUpdate => self.fight_target(event, dst),
+
+                    StateChange::SquadCombatEnd => self.end_fight(event, dst),
+
+                    StateChange::AnimationStart if src_self => {
+                        if let Some(time) = self.history.relative_time(event.time) {
+                            if self.data.contains(event.skill_id) {
+                                self.cast_start(event, skill_name, time)
                             }
                         }
                     }
 
-                    EventCategory::BuffApply => {
+                    StateChange::AnimationStop if src_self => {
+                        if let Some(time) = self.history.relative_time(event.time) {
+                            if self.data.contains(event.skill_id) {
+                                self.cast_end(event, skill_name, time)
+                            }
+                        }
+                    }
+
+                    StateChange::BuffApply => {
                         if let Some(dst) = dst {
                             let buff = event.skill_id;
                             if let Ok(buff) = buff.try_into() {
                                 // only care about buff applies to other where source and dest are different
                                 if dst.is_self == 0 && dst.id != src.id {
-                                    Self::lock().apply_buff(event, buff, src, dst)
+                                    self.apply_buff(event, buff, src, dst)
                                 }
                             } else if let Ok(condi) = buff.try_into() {
                                 // only care about condi applies from self to other and ignore extensions
                                 if src_self && dst.is_self == 0 && event.is_offcycle == 0 {
-                                    Self::lock().apply_condi(event, condi, dst)
+                                    self.apply_condi(event, condi, dst)
                                 }
                             }
                         }
                     }
 
-                    EventCategory::BuffRemove => {
+                    StateChange::BuffRemoveAll => {
                         if let Some(dst) = dst {
                             // only care about removes from self to self
-                            if event.get_buffremove() == BuffRemove::Manual
-                                && src_self
-                                && dst.is_self != 0
-                            {
+                            if src_self && dst.is_self != 0 {
                                 if let Ok(condi) = event.skill_id.try_into() {
-                                    Self::lock().remove_buff(event, condi)
+                                    self.remove_buff(event, condi)
                                 }
                             }
                         }
                     }
 
-                    EventCategory::Strike => {
-                        let mut plugin = Self::lock();
+                    StateChange::Combat => {
                         if let (Some(dst), Some(time)) =
-                            (dst, plugin.history.relative_time(event.time))
+                            (dst, self.history.relative_time(event.time))
                         {
-                            plugin.strike(event, skill_name, src, dst, time)
+                            self.strike(event, skill_name, src, dst, time)
                         }
                     }
 
@@ -90,20 +88,19 @@ impl Plugin {
             } else if let Some(dst) = dst {
                 // check for tracking addition
                 if src.elite == 0 && src.prof != 0 {
-                    let mut plugin = Self::lock();
                     if src.prof != 0 {
                         // player added
                         let player = Player::from_tracking_change(src, dst);
                         if dst.is_self != 0 {
-                            plugin.self_instance_id = Some(player.instance_id);
-                            debug!("own instance id changed to {}", player.instance_id);
+                            self.self_instance_id = Some(player.instance_id);
+                            log::debug!("own instance id changed to {}", player.instance_id);
                         }
-                        plugin.players.push(player);
+                        self.players.push(player);
                     } else if let Some(pos) =
-                        plugin.players.iter().position(|player| player.id == src.id)
+                        self.players.iter().position(|player| player.id == src.id)
                     {
                         // player tracked & removed
-                        plugin.players.swap_remove(pos);
+                        self.players.swap_remove(pos);
                     }
                 }
             }
@@ -125,21 +122,21 @@ impl Plugin {
 
     fn start_fight(&mut self, event: &Event, target: Option<&Agent>) {
         let species = event.src_agent as u32;
-        debug!("log start for {species}, {target:?}");
+        log::debug!("log start for {species}, {target:?}");
         self.history
             .add_fight_with_target(event.time, species, target);
     }
 
     fn fight_target(&mut self, event: &Event, target: Option<&Agent>) {
         let species = event.src_agent as u32;
-        debug!("log target change to {species}, {target:?}");
+        log::debug!("log target change to {species}, {target:?}");
         self.history
             .update_fight_target(event.time, species, target);
     }
 
     fn end_fight(&mut self, event: &Event, target: Option<&Agent>) {
         let species = event.src_agent;
-        debug!("log end for {species}, {target:?}");
+        log::debug!("log end for {species}, {target:?}");
         self.history.end_latest_fight(event.time);
     }
 
@@ -169,22 +166,22 @@ impl Plugin {
     fn cast_start(&mut self, event: &Event, skill_name: Option<&str>, time: i32) {
         let id = event.skill_id;
         let skill = self.skills.try_register(id, skill_name);
-        debug!("start {skill:?}");
+        log::debug!("start {skill:?}");
         let cast = Cast::from_start(time, id, CastState::Casting);
         self.add_cast(cast);
     }
 
     fn cast_end(&mut self, event: &Event, skill_name: Option<&str>, time: i32) {
-        let state = event.get_activation().into();
+        let state = event.get_animation_progress().into();
         let duration = event.value;
         let id = event.skill_id;
         self.skills.try_register(id, skill_name);
         if let Some(cast) = self.latest_cast_mut(event.skill_id) {
             cast.complete(id, state, duration, time);
-            debug!("complete {cast:?}");
+            log::debug!("complete {cast:?}");
         } else {
             let cast = Cast::from_end(time - duration, id, state, duration);
-            debug!("complete without start {cast:?}");
+            log::debug!("complete without start {cast:?}");
             self.add_cast(cast);
         }
     }
@@ -226,13 +223,16 @@ impl Plugin {
         self.skills.try_register(id, skill_name);
         let is_minion = self.is_own_minion(event);
         let is_own = attacker.is_self != 0 || is_minion;
-        match event.get_strike() {
-            Strike::Normal | Strike::Crit | Strike::Glance => {
+
+        match event.get_combat_result() {
+            CombatResult::StrikeDamage
+            | CombatResult::StrikeDamageCrit
+            | CombatResult::StrikeDamageGlance => {
                 if is_own {
                     self.damage_hit(is_minion, id, target, time)
                 }
             }
-            Strike::Breakbar => {
+            CombatResult::BreakbarDamage => {
                 let attacker = self
                     .get_master(event)
                     .map(|player| player.into())
@@ -253,11 +253,11 @@ impl Plugin {
                 match self.latest_cast_mut(id) {
                     Some(cast) if time - cast.time <= max => {
                         cast.hit(target);
-                        debug!("hit {:?}, {target:?}", cast.skill);
+                        log::debug!("hit {:?}, {target:?}", cast.skill);
                     }
                     _ => {
                         let cast = Cast::from_hit(time, id, target);
-                        debug!("hit without start {:?}, {target:?}", cast.skill);
+                        log::debug!("hit without start {:?}, {target:?}", cast.skill);
                         self.add_cast(cast);
                     }
                 }
@@ -276,7 +276,7 @@ impl Plugin {
     ) {
         // TODO: minion indicator?
         if let Some(fight) = self.history.latest_fight_mut() {
-            debug!("breakbar {damage} {skill:?} from {attacker:?} to {target:?}");
+            log::debug!("breakbar {damage} {skill:?} from {attacker:?} to {target:?}");
             let hit = BreakbarHit::new(time, skill, damage, attacker, is_own, target.into());
             fight.data.breakbar.push(hit);
         }
