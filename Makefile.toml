@@ -1,50 +1,54 @@
 env_scripts = [
-"""
+    """
 #!@duckscript
-if is_empty ${GW2_ADDON_PATH}
-    if is_empty ${GW2_PATH}
-        steam_path = set "C:/Program Files (x86)/Steam/steamapps/common/Guild Wars 2"
-        if is_path_exists ${steam_path}
-            GW2_PATH = set ${steam_path}
-        else
-            GW2_PATH = set "C:/Program Files/Guild Wars 2"
-        end
-        set_env GW2_PATH ${GW2_PATH}
+if is_empty ${GW2_PATH}
+    gw2_path = set "C:/Program Files/Guild Wars 2"
+
+    steam_path = set "C:/Program Files (x86)/Steam/steamapps/common/Guild Wars 2"
+    if is_path_exists ${steam_path}
+        gw2_path = set ${steam_path}
     end
 
-    addon_manager_path = join_path ${GW2_PATH} addons/arcdps
-    addon_manager_arcdps = join_path ${addon_manager_path} gw2addon_arcdps.dll
-
-    nexus_path = join_path ${GW2_PATH} addons
-    nexus_arcdps1 = join_path ${nexus_path} arcdps.dll
-    nexus_arcdps2 = join_path ${nexus_path} nexus_arcdps.dll
-
-    if is_path_exists ${addon_manager_arcdps}
-        echo "Loader: Addon Manager"
-        GW2_ADDON_PATH = set ${addon_manager_path}
-    elseif is_path_exists ${nexus_arcdps1} or is_path_exists ${nexus_arcdps2}
-        echo "Loader: Nexus"
-        GW2_ADDON_PATH = set ${nexus_path}
-    else
-        echo "Loader: ArcDPS"
-        GW2_ADDON_PATH = set ${GW2_PATH}
-    end
-
-    set_env GW2_ADDON_PATH ${GW2_ADDON_PATH}
+    set_env GW2_PATH ${gw2_path}
 end
-"""
+""",
 ]
 
+[env]
+CARGO_MAKE_EXTEND_WORKSPACE_MAKEFILE = true
+CARGO_MAKE_WORKSPACE_INCLUDE_MEMBERS = ["nexus"]
+INSTALL_PATH = "${GW2_PATH}/addons"
+
+[tasks.build]
+command = "cargo"
+args = ["build"]
+
+[tasks.build-release]
+command = "cargo"
+args = ["build", "--release"]
+
 [tasks.copy-release]
-script = "cp \"${CARGO_MAKE_CRATE_TARGET_DIRECTORY}/release/${CARGO_MAKE_CRATE_NAME}.dll\" \"${GW2_ADDON_PATH}\""
+script = "cp \"${CARGO_MAKE_CRATE_TARGET_DIRECTORY}/release/${CARGO_MAKE_CRATE_NAME}.dll\" \"${INSTALL_PATH}\""
+script_runner = "@shell"
+
+[tasks.copy-release-update]
+script = "cp \"${CARGO_MAKE_CRATE_TARGET_DIRECTORY}/release/${CARGO_MAKE_CRATE_NAME}.dll\" \"${INSTALL_PATH}/${CARGO_MAKE_CRATE_NAME}.dll.update\""
+script_runner = "@shell"
+
+[tasks.copy-release-pdb]
+script = "cp \"${CARGO_MAKE_CRATE_TARGET_DIRECTORY}/release/${CARGO_MAKE_CRATE_NAME}.pdb\" \"${INSTALL_PATH}"
 script_runner = "@shell"
 
 [tasks.copy-debug]
-script = "cp \"${CARGO_MAKE_CRATE_TARGET_DIRECTORY}/debug/${CARGO_MAKE_CRATE_NAME}.dll\" \"${GW2_ADDON_PATH}\""
+script = "cp \"${CARGO_MAKE_CRATE_TARGET_DIRECTORY}/debug/${CARGO_MAKE_CRATE_NAME}.dll\" \"${INSTALL_PATH}/${CARGO_MAKE_CRATE_NAME}.dll.update\""
+script_runner = "@shell"
+
+[tasks.copy-debug-pdb]
+script = "cp \"${CARGO_MAKE_CRATE_TARGET_DIRECTORY}/debug/${CARGO_MAKE_CRATE_NAME}.pdb\" \"${INSTALL_PATH}"
 script_runner = "@shell"
 
 [tasks.remove]
-script = "rm \"${GW2_ADDON_PATH}/${CARGO_MAKE_CRATE_NAME}.dll\""
+script = "rm \"${INSTALL_PATH}/${CARGO_MAKE_CRATE_NAME}.dll\""
 script_runner = "@shell"
 
 [tasks.install]
@@ -53,6 +57,14 @@ run_task = { name = ["build-release", "copy-release"] }
 [tasks.uninstall]
 alias = "remove"
 
+[tasks.dev-release]
+run_task = { name = [
+    "build-release",
+    "copy-release-update",
+    "copy-release-pdb",
+] }
+watch = true
+
 [tasks.dev]
-run_task = { name = ["build", "copy-debug"] }
+run_task = { name = ["build", "copy-debug", "copy-debug-pdb"] }
 watch = true

@@ -1,5 +1,5 @@
+use super::Buddy;
 use crate::{
-    Buddy, Handler,
     combat::skill::SkillMap,
     data::LoadError,
     ui::{
@@ -11,12 +11,21 @@ use arc_util::{
     colors::{GREEN, GREY, RED, YELLOW},
     ui::{Component, render},
 };
-use arcdps::imgui::Ui;
+use arcdps::{
+    exports::{self, CoreColor},
+    imgui::Ui,
+};
 
-impl<T> Buddy<T>
-where
-    T: Handler,
-{
+impl Buddy {
+    /// Callback for standalone UI creation.
+    pub fn render(ui: &Ui, not_loading: bool) {
+        let ui_settings = exports::ui_settings();
+        if !ui_settings.hidden && (not_loading || ui_settings.draw_always) {
+            Self::lock().render_windows(ui)
+        }
+    }
+
+    /// Renders standalone UI windows.
     pub fn render_windows(&mut self, ui: &Ui) {
         let Self {
             skills,
@@ -47,45 +56,54 @@ where
         self.transfer_log.render(ui, TransferLogProps { history });
     }
 
-    pub fn render_settings(&mut self, ui: &Ui) {
+    /// Renders settings UI.
+    pub fn render_settings(&mut self, ui: &Ui, keybinds: bool) {
+        let colors = exports::colors();
+        let grey = colors.core(CoreColor::MediumGrey).unwrap_or(GREY);
+        let red = colors.core(CoreColor::LightRed).unwrap_or(RED);
+        let green = colors.core(CoreColor::LightGreen).unwrap_or(GREEN);
+        let yellow = colors.core(CoreColor::LightYellow).unwrap_or(YELLOW);
+
         let _style = render::small_padding(ui);
 
-        ui.text_colored(GREY, "Hotkeys");
-        render::input_key(
-            ui,
-            "##multi-key",
-            "Multi",
-            &mut self.multi_view.options.hotkey,
-        );
-        render::input_key(
-            ui,
-            "##casts-key",
-            "Casts",
-            &mut self.cast_log.options.hotkey,
-        );
-        render::input_key(
-            ui,
-            "##buffs-key",
-            "Buffs",
-            &mut self.buff_log.options.hotkey,
-        );
-        render::input_key(
-            ui,
-            "##breakbar-key",
-            "Breakbar",
-            &mut self.breakbar_log.options.hotkey,
-        );
-        render::input_key(
-            ui,
-            "##transfer-key",
-            "Transfer",
-            &mut self.transfer_log.options.hotkey,
-        );
+        if keybinds {
+            ui.text_colored(grey, "Hotkeys");
+            render::input_key(
+                ui,
+                "##multi-key",
+                "Multi",
+                &mut self.multi_view.options.hotkey,
+            );
+            render::input_key(
+                ui,
+                "##casts-key",
+                "Casts",
+                &mut self.cast_log.options.hotkey,
+            );
+            render::input_key(
+                ui,
+                "##buffs-key",
+                "Buffs",
+                &mut self.buff_log.options.hotkey,
+            );
+            render::input_key(
+                ui,
+                "##breakbar-key",
+                "Breakbar",
+                &mut self.breakbar_log.options.hotkey,
+            );
+            render::input_key(
+                ui,
+                "##transfer-key",
+                "Transfer",
+                &mut self.transfer_log.options.hotkey,
+            );
 
-        ui.spacing();
-        ui.spacing();
+            ui.spacing();
+            ui.spacing();
+        }
 
-        ui.text_colored(GREY, "Fight history");
+        ui.text_colored(grey, "Fight history");
         let input_width = 100.0;
         let settings = &mut self.history.settings;
 
@@ -126,14 +144,14 @@ where
         ui.spacing();
 
         // TODO: select data, default only, custom only or both
-        ui.text_colored(GREY, "Custom data");
+        ui.text_colored(grey, "Custom data");
         ui.text("Status:");
         ui.same_line();
         match self.data_state {
-            Ok(count) => ui.text_colored(GREEN, format!("Loaded {count} entries")),
-            Err(LoadError::NotFound) => ui.text_colored(YELLOW, "Not found"),
-            Err(LoadError::FailedToRead) => ui.text_colored(RED, "Failed to read file"),
-            Err(LoadError::Invalid) => ui.text_colored(RED, "Failed to parse"),
+            Ok(count) => ui.text_colored(green, format!("Loaded {count} entries")),
+            Err(LoadError::NotFound) => ui.text_colored(yellow, "Not found"),
+            Err(LoadError::FailedToRead) => ui.text_colored(red, "Failed to read file"),
+            Err(LoadError::Invalid) => ui.text_colored(red, "Failed to parse"),
         }
         if ui.button("Reload##data") {
             self.load_data();
@@ -146,7 +164,7 @@ where
         ui.spacing();
         ui.spacing();
 
-        ui.text_colored(GREY, "Skill cache");
+        ui.text_colored(grey, "Skill cache");
         ui.text(format!("Overrides: {}", SkillMap::overrides()));
         ui.text(format!("Cached: {}", self.skills.cached()));
         if ui.button("Reset##skills") {

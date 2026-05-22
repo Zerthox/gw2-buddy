@@ -1,8 +1,11 @@
 [workspace]
 members = ["arcdps", "core", "nexus"]
+default-members = ["nexus"]
 resolver = "3"
 
 [workspace.dependencies]
+arc_util = { git = "https://github.com/zerthox/arcdps-utils" }
+arcdps = { git = "https://github.com/zerthox/arcdps-rs" }
 log = "0.4.18"
 semver = { version = "1.0.17", features = ["serde"] }
 

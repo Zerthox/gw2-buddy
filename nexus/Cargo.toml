@@ -1,14 +1,23 @@
 [package]
 name = "nexus_buddy"
-version = "0.1.0"
+version = "0.7.0"
 edition = "2024"
 authors = ["Zerthox"]
 repository = "https://github.com/zerthox/arcdps-buddy"
 
 [dependencies]
+arc_util = { workspace = true }
+arcdps = { workspace = true }
 buddy = { path = "../core" }
-nexus = { git = "https://github.com/zerthox/nexus-rs", features = ["arc"] }
+nexus = { git = "https://github.com/zerthox/nexus-rs", features = [
+    "arc",
+    "log",
+] }
 log = { workspace = true }
+windows = { version = "0.62.0", features = [
+    "System",
+    "Win32_UI_Input_KeyboardAndMouse",
+] }
 
 [build-dependencies]
 winresource = "0.1.17"

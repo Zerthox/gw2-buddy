@@ -1,32 +1,132 @@
-use buddy::{Buddy, Handler, Settings};
-use nexus::gui::{RenderType, register_render, render};
-use std::sync::{LazyLock, Mutex};
-
-static ADDON: LazyLock<Mutex<Buddy<NexusAddon>>> =
-    LazyLock::new(|| Mutex::new(Buddy::new(NexusAddon)));
-
-struct NexusAddon;
-
-impl Handler for NexusAddon {
-    fn settings(&self) -> Settings {
-        todo!()
-    }
-
-    fn skills_path(&self) -> Option<std::path::PathBuf> {
-        None
-    }
-}
+use arc_util::ui::Hideable;
+use arcdps::exports::{self, Modifiers};
+use buddy::Buddy;
+use nexus::{
+    event::{
+        ADDON_LOADED,
+        arc::{COMBAT_LOCAL, CombatData},
+    },
+    event_consume,
+    gui::{RenderType, register_render, render},
+    keybind::{Keybind, register_keybind_with_struct},
+    keybind_handler, on_unload,
+};
+use std::sync::Once;
+use windows::{
+    System::VirtualKey,
+    Win32::UI::Input::KeyboardAndMouse::{MAPVK_VK_TO_VSC, MapVirtualKeyA},
+};
 
 nexus::export! {
     name: "Buddy",
     signature: -0x74c13713,
-    load: || {
-        register_render(RenderType::Render, render!(|ui| {
-            ADDON.lock().unwrap().render_windows(ui);
-        })).revert_on_unload();
+    load,
+}
 
-        register_render(RenderType::OptionsRender, render!(|ui| {
-            ADDON.lock().unwrap().render_settings(ui);
-        })).revert_on_unload();
-    },
+const ARC_SIG: i32 = -0x96b2f;
+
+static ARC: Once = Once::new();
+
+fn load() {
+    register_render(
+        RenderType::OptionsRender,
+        render!(|ui| {
+            if ARC.is_completed() {
+                Buddy::lock().render_settings(ui, false);
+            } else {
+                ui.text_colored([1.0, 0.0, 0.0, 0.0], "ArcDPS not found");
+            }
+        }),
+    )
+    .revert_on_unload();
+
+    if !try_init() {
+        ADDON_LOADED
+            .subscribe(event_consume!(|sig: Option<&i32>| {
+                if sig == Some(&ARC_SIG) {
+                    try_init();
+                }
+            }))
+            .revert_on_unload();
+    }
+}
+
+fn try_init() -> bool {
+    if let Err(err) = unsafe { arcdps::search_and_init_arc() } {
+        log::error!("Failed to find ArcDPS: {err}");
+        return false;
+    }
+    log::info!("ArcDPS found");
+
+    ARC.call_once(|| {
+        Buddy::lock().load();
+        on_unload(|| Buddy::lock().unload());
+
+        register_render(
+            RenderType::Render,
+            render!(|ui| {
+                Buddy::lock().render_windows(ui);
+            }),
+        )
+        .revert_on_unload();
+
+        COMBAT_LOCAL
+            .subscribe(event_consume!(|data: Option<&CombatData>| {
+                if let Some(data) = data {
+                    Buddy::area_event(
+                        data.event(),
+                        data.src(),
+                        data.dst(),
+                        data.skill_name(),
+                        data.id,
+                        data.rev,
+                    );
+                }
+            }))
+            .revert_on_unload();
+
+        let modifiers = exports::modifiers();
+        let buddy = Buddy::lock();
+        macro_rules! register_keybind {
+            ( $id:literal, $window:ident) => {
+                register_keybind_with_struct(
+                    $id,
+                    keybind_handler!(|_, _| Buddy::lock().$window.toggle_visibility()),
+                    keybind_for(buddy.$window.options.hotkey, &modifiers),
+                )
+                .revert_on_unload();
+            };
+        }
+
+        register_keybind!("BUDDY_MULTI", multi_view);
+        register_keybind!("BUDDY_CASTS", cast_log);
+        register_keybind!("BUDDY_BUFFS", buff_log);
+        register_keybind!("BUDDY_BREAKBAR", breakbar_log);
+        register_keybind!("BUDDY_TRANSFER", transfer_log);
+    });
+
+    true
+}
+
+fn keybind_for(virtual_key: Option<u32>, modifiers: &Modifiers) -> Keybind {
+    if let Some(virtual_key) = virtual_key {
+        let scan_code = unsafe { MapVirtualKeyA(virtual_key, MAPVK_VK_TO_VSC) };
+        Keybind {
+            key: scan_code as _,
+            alt: has_modifier(&modifiers, VirtualKey::Menu.0 as _),
+            ctrl: has_modifier(&modifiers, VirtualKey::Control.0 as _),
+            shift: has_modifier(&modifiers, VirtualKey::Shift.0 as _),
+        }
+    } else {
+        Keybind::without_modifiers(0)
+    }
+}
+
+fn has_modifier(modifiers: &Modifiers, key: u16) -> bool {
+    let Modifiers {
+        modifier1,
+        modifier2,
+        ..
+    } = *modifiers;
+    modifier1 == key || modifier2 == key
 }

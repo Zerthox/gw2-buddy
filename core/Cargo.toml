@@ -6,16 +6,9 @@ authors = ["Zerthox"]
 repository = "https://github.com/zerthox/arcdps-buddy"
 
 [dependencies]
-arc_util = { git = "https://github.com/zerthox/arcdps-utils", features = [
-    "serde",
-    "settings",
-] }
-arcdps = { git = "https://github.com/zerthox/arcdps-rs", features = [
-    "log",
-    "serde",
-    "strum",
-] }
-log = { workspace = true, features = ["release_max_level_info"] }
+arc_util = { workspace = true, features = ["serde", "settings"] }
+arcdps = { workspace = true }
+log = { workspace = true }
 num_enum = "0.7.1"
 semver = { workspace = true }
 serde = { version = "1.0.163", features = ["derive"] }

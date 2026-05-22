@@ -1,5 +1,5 @@
 use crate::{
-    Buddy, Handler,
+    Buddy,
     combat::{
         breakbar::BreakbarHit,
         buff::{Buff, BuffApply},
@@ -10,39 +10,39 @@ use crate::{
 };
 use arcdps::{Agent, CombatResult, Event, StateChange};
 
-impl<T> Buddy<T>
-where
-    T: Handler,
-{
+impl Buddy {
     pub fn area_event(
-        &mut self,
         event: Option<&Event>,
         src: Option<&Agent>,
         dst: Option<&Agent>,
         skill_name: Option<&str>,
+        _event_id: u64,
+        _revision: u64,
     ) {
         if let Some(src) = src {
             if let Some(event) = event {
                 let src_self = src.is_self != 0;
                 match event.get_statechange() {
-                    StateChange::SquadCombatStart => self.start_fight(event, dst),
+                    StateChange::SquadCombatStart => Self::lock().start_fight(event, dst),
 
-                    StateChange::LogNPCUpdate => self.fight_target(event, dst),
+                    StateChange::LogNPCUpdate => Self::lock().fight_target(event, dst),
 
-                    StateChange::SquadCombatEnd => self.end_fight(event, dst),
+                    StateChange::SquadCombatEnd => Self::lock().end_fight(event, dst),
 
                     StateChange::AnimationStart if src_self => {
-                        if let Some(time) = self.history.relative_time(event.time) {
-                            if self.data.contains(event.skill_id) {
-                                self.cast_start(event, skill_name, time)
+                        let mut buddy = Self::lock();
+                        if let Some(time) = buddy.history.relative_time(event.time) {
+                            if buddy.data.contains(event.skill_id) {
+                                buddy.cast_start(event, skill_name, time)
                             }
                         }
                     }
 
                     StateChange::AnimationStop if src_self => {
-                        if let Some(time) = self.history.relative_time(event.time) {
-                            if self.data.contains(event.skill_id) {
-                                self.cast_end(event, skill_name, time)
+                        let mut buddy = Self::lock();
+                        if let Some(time) = buddy.history.relative_time(event.time) {
+                            if buddy.data.contains(event.skill_id) {
+                                buddy.cast_end(event, skill_name, time)
                             }
                         }
                     }
@@ -53,12 +53,12 @@ where
                             if let Ok(buff) = buff.try_into() {
                                 // only care about buff applies to other where source and dest are different
                                 if dst.is_self == 0 && dst.id != src.id {
-                                    self.apply_buff(event, buff, src, dst)
+                                    Self::lock().apply_buff(event, buff, src, dst)
                                 }
                             } else if let Ok(condi) = buff.try_into() {
                                 // only care about condi applies from self to other and ignore extensions
                                 if src_self && dst.is_self == 0 && event.is_offcycle == 0 {
-                                    self.apply_condi(event, condi, dst)
+                                    Self::lock().apply_condi(event, condi, dst)
                                 }
                             }
                         }
@@ -69,17 +69,18 @@ where
                             // only care about removes from self to self
                             if src_self && dst.is_self != 0 {
                                 if let Ok(condi) = event.skill_id.try_into() {
-                                    self.remove_buff(event, condi)
+                                    Self::lock().remove_buff(event, condi)
                                 }
                             }
                         }
                     }
 
                     StateChange::Combat => {
+                        let mut buddy = Self::lock();
                         if let (Some(dst), Some(time)) =
-                            (dst, self.history.relative_time(event.time))
+                            (dst, buddy.history.relative_time(event.time))
                         {
-                            self.strike(event, skill_name, src, dst, time)
+                            buddy.strike(event, skill_name, src, dst, time)
                         }
                     }
 
@@ -88,19 +89,20 @@ where
             } else if let Some(dst) = dst {
                 // check for tracking addition
                 if src.elite == 0 && src.prof != 0 {
+                    let mut buddy = Self::lock();
                     if src.prof != 0 {
                         // player added
                         let player = Player::from_tracking_change(src, dst);
                         if dst.is_self != 0 {
-                            self.self_instance_id = Some(player.instance_id);
+                            buddy.self_instance_id = Some(player.instance_id);
                             log::debug!("own instance id changed to {}", player.instance_id);
                         }
-                        self.players.push(player);
+                        buddy.players.push(player);
                     } else if let Some(pos) =
-                        self.players.iter().position(|player| player.id == src.id)
+                        buddy.players.iter().position(|player| player.id == src.id)
                     {
                         // player tracked & removed
-                        self.players.swap_remove(pos);
+                        buddy.players.swap_remove(pos);
                     }
                 }
             }
