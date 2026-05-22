@@ -3,6 +3,7 @@ name = "nexus_buddy"
 version = "0.7.0"
 edition = "2024"
 authors = ["Zerthox"]
+description = "Assists with evaluating combat gameplay."
 repository = "https://github.com/zerthox/arcdps-buddy"
 
 [dependencies]

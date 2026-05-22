@@ -91,7 +91,11 @@ fn try_init() -> bool {
             ( $id:literal, $window:ident) => {
                 register_keybind_with_struct(
                     $id,
-                    keybind_handler!(|_, _| Buddy::lock().$window.toggle_visibility()),
+                    keybind_handler!(|_, released| {
+                        if !released {
+                            Buddy::lock().$window.toggle_visibility()
+                        }
+                    }),
                     keybind_for(buddy.$window.options.hotkey, &modifiers),
                 )
                 .revert_on_unload();
