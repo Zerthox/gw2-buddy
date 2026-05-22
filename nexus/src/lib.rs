@@ -1,10 +1,13 @@
 use arc_util::ui::Hideable;
 use arcdps::exports::{self, Modifiers};
-use buddy::Buddy;
+use buddy::{Buddy, combat::Player};
 use nexus::{
     event::{
         ADDON_LOADED,
-        arc::{COMBAT_LOCAL, CombatData},
+        arc::{
+            AgentUpdate, COMBAT_LOCAL, CombatData, REPLAY_SELF_JOIN, REPLAY_SQUAD_JOIN, SELF_JOIN,
+            SELF_LEAVE, SQUAD_JOIN, SQUAD_LEAVE,
+        },
     },
     event_consume,
     gui::{RenderType, register_render, render},
@@ -59,7 +62,9 @@ fn try_init() -> bool {
     log::info!("ArcDPS found");
 
     ARC.call_once(|| {
-        Buddy::lock().load();
+        let mut buddy = Buddy::lock();
+
+        buddy.load();
         on_unload(|| Buddy::lock().unload());
 
         register_render(
@@ -70,23 +75,7 @@ fn try_init() -> bool {
         )
         .revert_on_unload();
 
-        COMBAT_LOCAL
-            .subscribe(event_consume!(|data: Option<&CombatData>| {
-                if let Some(data) = data {
-                    Buddy::area_event(
-                        data.event(),
-                        data.src(),
-                        data.dst(),
-                        data.skill_name(),
-                        data.id,
-                        data.rev,
-                    );
-                }
-            }))
-            .revert_on_unload();
-
         let modifiers = exports::modifiers();
-        let buddy = Buddy::lock();
         macro_rules! register_keybind {
             ( $id:literal, $window:ident) => {
                 register_keybind_with_struct(
@@ -107,6 +96,45 @@ fn try_init() -> bool {
         register_keybind!("BUDDY_BUFFS", buff_log);
         register_keybind!("BUDDY_BREAKBAR", breakbar_log);
         register_keybind!("BUDDY_TRANSFER", transfer_log);
+
+        COMBAT_LOCAL
+            .subscribe(event_consume!(|data: Option<&CombatData>| {
+                if let Some(data) = data
+                    && let Some(src) = data.src()
+                    && let Some(event) = data.event()
+                {
+                    Buddy::combat_event(event, src, data.dst(), data.skill_name());
+                }
+            }))
+            .revert_on_unload();
+
+        let handle_join = event_consume!(|data: Option<&AgentUpdate>| {
+            if let Some(player) = data {
+                Buddy::lock().add_player(
+                    Player::new(
+                        player.id,
+                        player.instance_id as u16,
+                        player.prof,
+                        player.elite,
+                        player.character(),
+                    ),
+                    player.is_self(),
+                );
+            }
+        });
+        SELF_JOIN.subscribe(handle_join).revert_on_unload();
+        SQUAD_JOIN.subscribe(handle_join).revert_on_unload();
+
+        let handle_leave = event_consume!(|data: Option<&AgentUpdate>| {
+            if let Some(player) = data {
+                Buddy::lock().remove_player(player.id);
+            }
+        });
+        SELF_LEAVE.subscribe(handle_leave).revert_on_unload();
+        SQUAD_LEAVE.subscribe(handle_leave).revert_on_unload();
+
+        REPLAY_SELF_JOIN.raise(&());
+        REPLAY_SQUAD_JOIN.raise(&());
     });
 
     true

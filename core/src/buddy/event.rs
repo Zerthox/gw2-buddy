@@ -11,81 +11,15 @@ use crate::{
 use arcdps::{Agent, CombatResult, Event, StateChange};
 
 impl Buddy {
-    pub fn area_event(
+    pub fn event(
         event: Option<&Event>,
         src: Option<&Agent>,
         dst: Option<&Agent>,
         skill_name: Option<&str>,
-        _event_id: u64,
-        _revision: u64,
     ) {
         if let Some(src) = src {
             if let Some(event) = event {
-                let src_self = src.is_self != 0;
-                match event.get_statechange() {
-                    StateChange::SquadCombatStart => Self::lock().start_fight(event, dst),
-
-                    StateChange::LogNPCUpdate => Self::lock().fight_target(event, dst),
-
-                    StateChange::SquadCombatEnd => Self::lock().end_fight(event, dst),
-
-                    StateChange::AnimationStart if src_self => {
-                        let mut buddy = Self::lock();
-                        if let Some(time) = buddy.history.relative_time(event.time) {
-                            if buddy.data.contains(event.skill_id) {
-                                buddy.cast_start(event, skill_name, time)
-                            }
-                        }
-                    }
-
-                    StateChange::AnimationStop if src_self => {
-                        let mut buddy = Self::lock();
-                        if let Some(time) = buddy.history.relative_time(event.time) {
-                            if buddy.data.contains(event.skill_id) {
-                                buddy.cast_end(event, skill_name, time)
-                            }
-                        }
-                    }
-
-                    StateChange::BuffApply => {
-                        if let Some(dst) = dst {
-                            let buff = event.skill_id;
-                            if let Ok(buff) = buff.try_into() {
-                                // only care about buff applies to other where source and dest are different
-                                if dst.is_self == 0 && dst.id != src.id {
-                                    Self::lock().apply_buff(event, buff, src, dst)
-                                }
-                            } else if let Ok(condi) = buff.try_into() {
-                                // only care about condi applies from self to other and ignore extensions
-                                if src_self && dst.is_self == 0 && event.is_offcycle == 0 {
-                                    Self::lock().apply_condi(event, condi, dst)
-                                }
-                            }
-                        }
-                    }
-
-                    StateChange::BuffRemoveAll => {
-                        if let Some(dst) = dst {
-                            // only care about removes from self to self
-                            if src_self && dst.is_self != 0 {
-                                if let Ok(condi) = event.skill_id.try_into() {
-                                    Self::lock().remove_buff(event, condi)
-                                }
-                            }
-                        }
-                    }
-
-                    StateChange::Combat => {
-                        let mut buddy = Self::lock();
-                        if let (Some(dst), Some(time)) =
-                            (dst, buddy.history.relative_time(event.time))
-                        {
-                            buddy.strike(event, skill_name, src, dst, time)
-                        }
-                    }
-
-                    _ => {}
-                }
+                Self::combat_event(event, src, dst, skill_name);
             } else if let Some(dst) = dst {
                 // check for tracking addition
                 if src.elite == 0 && src.prof != 0 {
@@ -93,19 +27,93 @@ impl Buddy {
                     if src.prof != 0 {
                         // player added
                         let player = Player::from_tracking_change(src, dst);
-                        if dst.is_self != 0 {
-                            buddy.self_instance_id = Some(player.instance_id);
-                            log::debug!("own instance id changed to {}", player.instance_id);
-                        }
-                        buddy.players.push(player);
-                    } else if let Some(pos) =
-                        buddy.players.iter().position(|player| player.id == src.id)
-                    {
-                        // player tracked & removed
-                        buddy.players.swap_remove(pos);
+                        buddy.add_player(player, dst.is_self != 0);
+                    } else {
+                        // player removed
+                        buddy.remove_player(src.id);
                     }
                 }
             }
+        }
+    }
+
+    pub fn combat_event(event: &Event, src: &Agent, dst: Option<&Agent>, skill_name: Option<&str>) {
+        let src_self = src.is_self != 0;
+        match event.get_statechange() {
+            StateChange::SquadCombatStart => Self::lock().start_fight(event, dst),
+
+            StateChange::LogNPCUpdate => Self::lock().fight_target(event, dst),
+
+            StateChange::SquadCombatEnd => Self::lock().end_fight(event, dst),
+
+            StateChange::AnimationStart if src_self => {
+                let mut buddy = Self::lock();
+                if let Some(time) = buddy.history.relative_time(event.time) {
+                    if buddy.data.contains(event.skill_id) {
+                        buddy.cast_start(event, skill_name, time)
+                    }
+                }
+            }
+
+            StateChange::AnimationStop if src_self => {
+                let mut buddy = Self::lock();
+                if let Some(time) = buddy.history.relative_time(event.time) {
+                    if buddy.data.contains(event.skill_id) {
+                        buddy.cast_end(event, skill_name, time)
+                    }
+                }
+            }
+
+            StateChange::BuffApply => {
+                if let Some(dst) = dst {
+                    let buff = event.skill_id;
+                    if let Ok(buff) = buff.try_into() {
+                        // only care about buff applies to other where source and dest are different
+                        if dst.is_self == 0 && dst.id != src.id {
+                            Self::lock().apply_buff(event, buff, src, dst)
+                        }
+                    } else if let Ok(condi) = buff.try_into() {
+                        // only care about condi applies from self to other and ignore extensions
+                        if src_self && dst.is_self == 0 && event.is_offcycle == 0 {
+                            Self::lock().apply_condi(event, condi, dst)
+                        }
+                    }
+                }
+            }
+
+            StateChange::BuffRemoveAll => {
+                if let Some(dst) = dst {
+                    // only care about removes from self to self
+                    if src_self && dst.is_self != 0 {
+                        if let Ok(condi) = event.skill_id.try_into() {
+                            Self::lock().remove_buff(event, condi)
+                        }
+                    }
+                }
+            }
+
+            StateChange::Combat => {
+                let mut buddy = Self::lock();
+                if let (Some(dst), Some(time)) = (dst, buddy.history.relative_time(event.time)) {
+                    buddy.strike(event, skill_name, src, dst, time)
+                }
+            }
+
+            _ => {}
+        }
+    }
+
+    pub fn add_player(&mut self, player: Player, is_self: bool) {
+        if is_self {
+            self.self_instance_id = Some(player.instance_id);
+            log::debug!("own instance id changed to {}", player.instance_id);
+        }
+        self.players.push(player);
+    }
+
+    pub fn remove_player(&mut self, id: usize) {
+        if let Some(pos) = self.players.iter().position(|player| player.id == id) {
+            self.players.swap_remove(pos);
         }
     }
 

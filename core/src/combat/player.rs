@@ -1,5 +1,8 @@
 use crate::combat::process_name;
-use arcdps::{evtc, Profession};
+use arcdps::{
+    Profession,
+    evtc::{self, AgentKind},
+};
 
 /// Information about a player.
 #[derive(Debug, Clone)]
@@ -11,14 +14,21 @@ pub struct Player {
 }
 
 impl Player {
-    /// Creates a new player from a tracking change.
-    pub fn from_tracking_change(src: &evtc::Agent, dst: &evtc::Agent) -> Self {
-        let kind = dst.kind();
+    /// Creates a new player.
+    #[inline]
+    pub fn new(id: usize, instance_id: u16, prof: u32, elite: u32, name: Option<&str>) -> Self {
+        let kind = AgentKind::new(prof, elite);
         Self {
-            id: src.id,
-            instance_id: dst.id as u16,
-            prof: dst.prof.into(),
-            name: process_name(src.id, kind, src.name()),
+            id,
+            instance_id,
+            prof: prof.into(),
+            name: process_name(id, kind, name),
         }
+    }
+
+    /// Creates a new player from a tracking change.
+    #[inline]
+    pub fn from_tracking_change(src: &evtc::Agent, dst: &evtc::Agent) -> Self {
+        Self::new(src.id, dst.id as u16, dst.prof, dst.elite, src.name())
     }
 }

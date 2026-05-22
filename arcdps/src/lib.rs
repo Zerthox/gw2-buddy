@@ -16,7 +16,7 @@ arcdps::export! {
         Ok(())
     },
     release: || Buddy::lock().unload(),
-    combat:  Buddy::area_event,
+    combat: |event, src, dst, skill, _id, _rev| Buddy::event(event, src, dst, skill),
     imgui,
     options_end: |ui| Buddy::lock().render_settings(ui, true),
     options_windows,
@@ -31,7 +31,7 @@ static UPDATER: LazyLock<Mutex<Updater>> = LazyLock::new(|| {
     ))
 });
 
-pub fn imgui(ui: &Ui, not_loading: bool) {
+fn imgui(ui: &Ui, not_loading: bool) {
     let ui_settings = exports::ui_settings();
     if !ui_settings.hidden && (not_loading || ui_settings.draw_always) {
         Buddy::lock().render_windows(ui);
