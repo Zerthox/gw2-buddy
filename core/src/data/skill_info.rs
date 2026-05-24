@@ -34,7 +34,7 @@ impl From<SkillDef> for SkillInfo {
             id,
             hits: hits.map(|max| SkillHits {
                 max,
-                expected: expected.unwrap_or((max + 1) / 2),
+                expected: expected.unwrap_or(max.div_ceil(2)),
             }),
             max_duration: max_duration
                 .map(|dur| dur + DURATION_EPSILON)

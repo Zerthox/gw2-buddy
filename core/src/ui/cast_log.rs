@@ -99,12 +99,11 @@ impl Component<CastLogProps<'_>> for CastLog {
 
             for cast in &fight.data.casts {
                 if let Some(info) = data.get(cast.skill) {
-                    if self.only_misses {
-                        if let Some(hit_info) = &info.hits {
-                            if !hit_info.missed(cast.hits.len()) {
-                                continue;
-                            }
-                        }
+                    if self.only_misses
+                        && let Some(hit_info) = &info.hits
+                        && !hit_info.missed(cast.hits.len())
+                    {
+                        continue;
                     }
 
                     if self.display_time {

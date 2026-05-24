@@ -109,18 +109,18 @@ impl Buddy {
     }
 
     pub fn load_data(&mut self) {
-        if let Some(path) = Settings::config_path(Self::SKILLS_FILE) {
-            if path.exists() {
-                self.data_state = self.data.try_load(&path);
+        if let Some(path) = Settings::config_path(Self::SKILLS_FILE)
+            && path.exists()
+        {
+            self.data_state = self.data.try_load(&path);
 
-                if self.data_state.is_ok() {
-                    log::info!("Loaded custom definitions from \"{}\"", path.display());
-                } else {
-                    log::warn!(
-                        "Failed to load custom definitions from \"{}\"",
-                        path.display()
-                    );
-                }
+            if self.data_state.is_ok() {
+                log::info!("Loaded custom definitions from \"{}\"", path.display());
+            } else {
+                log::warn!(
+                    "Failed to load custom definitions from \"{}\"",
+                    path.display()
+                );
             }
         }
     }
@@ -141,5 +141,11 @@ impl Buddy {
         settings.store_component(&self.breakbar_log);
 
         settings.save_file();
+    }
+}
+
+impl Default for Buddy {
+    fn default() -> Self {
+        Self::new()
     }
 }

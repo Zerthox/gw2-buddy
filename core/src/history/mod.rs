@@ -103,10 +103,10 @@ impl<T> History<T> {
 
     /// Adds a fight to the history.
     pub fn add_fight(&mut self, fight: Fight<T>) {
-        if let Some(prev) = self.fights.front() {
-            if matches!(prev.duration(), Some(duration) if duration < self.settings.min_duration) {
-                self.fights.pop_front();
-            }
+        if let Some(prev) = self.fights.front()
+            && matches!(prev.duration(), Some(duration) if duration < self.settings.min_duration)
+        {
+            self.fights.pop_front();
         }
         if self.len() > self.settings.max_fights {
             self.fights.pop_back();

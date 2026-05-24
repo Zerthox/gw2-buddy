@@ -138,9 +138,9 @@ fn register_keybinds(modifiers: Option<&Modifiers>) {
     let base = if let Some(modifiers) = modifiers {
         Keybind {
             key: 0,
-            alt: has_modifier(&modifiers, VirtualKey::Menu.0 as _),
-            ctrl: has_modifier(&modifiers, VirtualKey::Control.0 as _),
-            shift: has_modifier(&modifiers, VirtualKey::Shift.0 as _),
+            alt: has_modifier(modifiers, VirtualKey::Menu.0 as _),
+            ctrl: has_modifier(modifiers, VirtualKey::Control.0 as _),
+            shift: has_modifier(modifiers, VirtualKey::Shift.0 as _),
         }
     } else {
         Keybind::without_modifiers(0)

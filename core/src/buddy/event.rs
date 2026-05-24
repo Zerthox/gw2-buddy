@@ -48,19 +48,19 @@ impl Buddy {
 
             StateChange::AnimationStart if src_self => {
                 let mut buddy = Self::lock();
-                if let Some(time) = buddy.history.relative_time(event.time) {
-                    if buddy.data.contains(event.skill_id) {
-                        buddy.cast_start(event, skill_name, time)
-                    }
+                if let Some(time) = buddy.history.relative_time(event.time)
+                    && buddy.data.contains(event.skill_id)
+                {
+                    buddy.cast_start(event, skill_name, time)
                 }
             }
 
             StateChange::AnimationStop if src_self => {
                 let mut buddy = Self::lock();
-                if let Some(time) = buddy.history.relative_time(event.time) {
-                    if buddy.data.contains(event.skill_id) {
-                        buddy.cast_end(event, skill_name, time)
-                    }
+                if let Some(time) = buddy.history.relative_time(event.time)
+                    && buddy.data.contains(event.skill_id)
+                {
+                    buddy.cast_end(event, skill_name, time)
                 }
             }
 
@@ -84,10 +84,11 @@ impl Buddy {
             StateChange::BuffRemoveAll => {
                 if let Some(dst) = dst {
                     // only care about removes from self to self
-                    if src_self && dst.is_self != 0 {
-                        if let Ok(condi) = event.skill_id.try_into() {
-                            Self::lock().remove_buff(event, condi)
-                        }
+                    if src_self
+                        && dst.is_self != 0
+                        && let Ok(condi) = event.skill_id.try_into()
+                    {
+                        Self::lock().remove_buff(event, condi)
                     }
                 }
             }
@@ -197,13 +198,13 @@ impl Buddy {
     }
 
     fn apply_buff(&mut self, event: &Event, buff: Buff, src: &Agent, dst: &Agent) {
-        if src.is_self != 0 || self.is_own_minion(event) {
-            if let Some((time, fight)) = self.history.fight_and_time(event.time) {
-                // TODO: "effective" duration excluding overstack?
-                let duration = event.value;
-                let apply = BuffApply::new(time, buff, duration, dst.into());
-                fight.data.buffs.push(apply)
-            }
+        if (src.is_self != 0 || self.is_own_minion(event))
+            && let Some((time, fight)) = self.history.fight_and_time(event.time)
+        {
+            // TODO: "effective" duration excluding overstack?
+            let duration = event.value;
+            let apply = BuffApply::new(time, buff, duration, dst.into());
+            fight.data.buffs.push(apply)
         }
     }
 
@@ -237,10 +238,10 @@ impl Buddy {
         match event.get_combat_result() {
             CombatResult::StrikeDamage
             | CombatResult::StrikeDamageCrit
-            | CombatResult::StrikeDamageGlance => {
-                if is_own {
-                    self.damage_hit(is_minion, id, target, time)
-                }
+            | CombatResult::StrikeDamageGlance
+                if is_own =>
+            {
+                self.damage_hit(is_minion, id, target, time)
             }
             CombatResult::BreakbarDamage => {
                 let attacker = self
@@ -255,21 +256,21 @@ impl Buddy {
 
     fn damage_hit(&mut self, is_minion: bool, skill: u32, target: &Agent, time: i32) {
         // TODO: use local combat events for hits?
-        if let Some(info) = self.data.get(skill) {
-            if info.minion || !is_minion {
-                let max = info.max_duration;
-                let id = info.id;
-                self.skills.try_duplicate(id, skill);
-                match self.latest_cast_mut(id) {
-                    Some(cast) if time - cast.time <= max => {
-                        cast.hit(target);
-                        log::debug!("hit {:?}, {target:?}", cast.skill);
-                    }
-                    _ => {
-                        let cast = Cast::from_hit(time, id, target);
-                        log::debug!("hit without start {:?}, {target:?}", cast.skill);
-                        self.add_cast(cast);
-                    }
+        if let Some(info) = self.data.get(skill)
+            && (info.minion || !is_minion)
+        {
+            let max = info.max_duration;
+            let id = info.id;
+            self.skills.try_duplicate(id, skill);
+            match self.latest_cast_mut(id) {
+                Some(cast) if time - cast.time <= max => {
+                    cast.hit(target);
+                    log::debug!("hit {:?}, {target:?}", cast.skill);
+                }
+                _ => {
+                    let cast = Cast::from_hit(time, id, target);
+                    log::debug!("hit without start {:?}, {target:?}", cast.skill);
+                    self.add_cast(cast);
                 }
             }
         }

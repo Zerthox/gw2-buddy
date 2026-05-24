@@ -86,16 +86,21 @@ impl SkillMap {
 
     /// Attempts to duplicate a skill.
     pub fn try_duplicate(&mut self, id: u32, from: u32) {
-        if id != from {
-            if let Some(Skill {
+        if id != from
+            && let Some(Skill {
                 is_placeholder: false,
                 name,
             }) = self.map.get(&from)
-            {
-                let new = Skill::placeholder(name);
-                self.try_replace_with(id, || new);
-            }
+        {
+            let new = Skill::placeholder(name);
+            self.try_replace_with(id, || new);
         }
+    }
+}
+
+impl Default for SkillMap {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
