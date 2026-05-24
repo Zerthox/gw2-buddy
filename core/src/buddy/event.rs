@@ -8,7 +8,7 @@ use crate::{
         transfer::{Apply, Condition, Remove},
     },
 };
-use arcdps::{Agent, CombatResult, Event, StateChange};
+use arcdps::{Agent, CombatResult, Event, StateChange, evtc::buff::BuffRemove};
 
 impl Buddy {
     pub fn event(
@@ -108,7 +108,7 @@ impl Buddy {
     pub fn add_player(&mut self, player: Player, is_self: bool) {
         if is_self {
             self.self_instance_id = Some(player.instance_id);
-            log::debug!("own instance id changed to {}", player.instance_id);
+            log::debug!("Own instance id changed to {}", player.instance_id);
         }
         self.players.push(player);
     }
@@ -134,21 +134,30 @@ impl Buddy {
 
     fn start_fight(&mut self, event: &Event, target: Option<&Agent>) {
         let species = event.src_agent as u32;
-        log::debug!("log start for {species}, {target:?}");
+        log::debug!(
+            "Fight start for {species}, target {:?}",
+            target.map(|agent| agent.id)
+        );
         self.history
             .add_fight_with_target(event.time, species, target);
     }
 
     fn fight_target(&mut self, event: &Event, target: Option<&Agent>) {
         let species = event.src_agent as u32;
-        log::debug!("log target change to {species}, {target:?}");
+        log::debug!(
+            "Fight target changed to {species}, target {:?}",
+            target.map(|agent| agent.id)
+        );
         self.history
             .update_fight_target(event.time, species, target);
     }
 
     fn end_fight(&mut self, event: &Event, target: Option<&Agent>) {
         let species = event.src_agent;
-        log::debug!("log end for {species}, {target:?}");
+        log::debug!(
+            "Fight end for {species}, target {:?}",
+            target.map(|agent| agent.id)
+        );
         self.history.end_latest_fight(event.time);
     }
 
@@ -178,7 +187,7 @@ impl Buddy {
     fn cast_start(&mut self, event: &Event, skill_name: Option<&str>, time: i32) {
         let id = event.skill_id;
         let skill = self.skills.try_register(id, skill_name);
-        log::debug!("start {skill:?}");
+        log::trace!("Start cast {skill:?}");
         let cast = Cast::from_start(time, id, CastState::Casting);
         self.add_cast(cast);
     }
@@ -190,10 +199,10 @@ impl Buddy {
         self.skills.try_register(id, skill_name);
         if let Some(cast) = self.latest_cast_mut(event.skill_id) {
             cast.complete(id, state, duration, time);
-            log::debug!("complete {cast:?}");
+            log::trace!("Complete {cast:?}");
         } else {
             let cast = Cast::from_end(time - duration, id, state, duration);
-            log::debug!("complete without start {cast:?}");
+            log::trace!("Complete nostart {cast:?}");
             self.add_cast(cast);
         }
     }
@@ -266,11 +275,11 @@ impl Buddy {
             match self.latest_cast_mut(id) {
                 Some(cast) if time - cast.time <= max => {
                     cast.hit(target);
-                    log::debug!("hit {:?}, {target:?}", cast.skill);
+                    log::trace!("Hit {} with {}", target.id, cast.skill);
                 }
                 _ => {
                     let cast = Cast::from_hit(time, id, target);
-                    log::debug!("hit without start {:?}, {target:?}", cast.skill);
+                    log::trace!("Hit nocast {} with {}", target.id, cast.skill);
                     self.add_cast(cast);
                 }
             }
@@ -288,7 +297,10 @@ impl Buddy {
     ) {
         // TODO: minion indicator?
         if let Some(fight) = self.history.latest_fight_mut() {
-            log::debug!("breakbar {damage} {skill:?} from {attacker:?} to {target:?}");
+            log::trace!(
+                "Breakbar {damage} with {skill} from {attacker:?} to {}",
+                target.id
+            );
             let hit = BreakbarHit::new(time, skill, damage, attacker, is_own, target.into());
             fight.data.breakbar.push(hit);
         }

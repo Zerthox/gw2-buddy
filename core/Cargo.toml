@@ -8,7 +8,7 @@ repository = "https://github.com/zerthox/gw2-buddy"
 [dependencies]
 arc_util = { workspace = true, features = ["serde", "settings"] }
 arcdps = { workspace = true }
-log = { workspace = true }
+log = { workspace = true, features = ["release_max_level_debug"] }
 num_enum = "0.7.1"
 semver = { workspace = true }
 serde = { version = "1.0.163", features = ["derive"] }
