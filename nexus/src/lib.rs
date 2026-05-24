@@ -1,4 +1,4 @@
-use arc_util::ui::Hideable;
+use arc_util::{colors::RED, ui::Hideable};
 use arcdps::exports::{self, Modifiers};
 use buddy::{Buddy, combat::Player};
 use nexus::{
@@ -14,7 +14,7 @@ use nexus::{
     keybind::{Keybind, register_keybind_with_struct},
     keybind_handler, on_unload,
 };
-use std::sync::Once;
+use std::{sync::Once, thread, time::Duration};
 use windows::{
     System::VirtualKey,
     Win32::UI::Input::KeyboardAndMouse::{MAPVK_VK_TO_VSC, MapVirtualKeyA},
@@ -37,7 +37,7 @@ fn load() {
             if ARC.is_completed() {
                 Buddy::lock().render_settings(ui, false);
             } else {
-                ui.text_colored([1.0, 0.0, 0.0, 0.0], "ArcDPS not found");
+                ui.text_colored(RED, "ArcDPS not found");
             }
         }),
     )
@@ -62,9 +62,7 @@ fn try_init() -> bool {
     log::info!("ArcDPS found");
 
     ARC.call_once(|| {
-        let mut buddy = Buddy::lock();
-
-        buddy.load();
+        Buddy::lock().load();
         on_unload(|| Buddy::lock().unload());
 
         register_render(
@@ -75,27 +73,23 @@ fn try_init() -> bool {
         )
         .revert_on_unload();
 
-        let modifiers = exports::modifiers();
-        macro_rules! register_keybind {
-            ( $id:literal, $window:ident) => {
-                register_keybind_with_struct(
-                    $id,
-                    keybind_handler!(|_, released| {
-                        if !released {
-                            Buddy::lock().$window.toggle_visibility()
-                        }
-                    }),
-                    keybind_for(buddy.$window.options.hotkey, &modifiers),
-                )
-                .revert_on_unload();
-            };
-        }
-
-        register_keybind!("BUDDY_MULTI", multi_view);
-        register_keybind!("BUDDY_CASTS", cast_log);
-        register_keybind!("BUDDY_BUFFS", buff_log);
-        register_keybind!("BUDDY_BREAKBAR", breakbar_log);
-        register_keybind!("BUDDY_TRANSFER", transfer_log);
+        thread::spawn(|| {
+            for _ in 0..20 {
+                thread::sleep(Duration::from_millis(500));
+                let modifiers @ Modifiers {
+                    modifier1,
+                    modifier2,
+                    ..
+                } = exports::modifiers();
+                if modifier1 != 0 || modifier2 != 0 {
+                    log::debug!("Migrating keybinds with modifiers {modifier1} {modifier2}");
+                    register_keybinds(Some(&modifiers));
+                    return;
+                }
+            }
+            log::warn!("Failed to migrate keybinds");
+            register_keybinds(None);
+        });
 
         COMBAT_LOCAL
             .subscribe(event_consume!(|data: Option<&CombatData>| {
@@ -140,14 +134,47 @@ fn try_init() -> bool {
     true
 }
 
-fn keybind_for(virtual_key: Option<u32>, modifiers: &Modifiers) -> Keybind {
+fn register_keybinds(modifiers: Option<&Modifiers>) {
+    let base = if let Some(modifiers) = modifiers {
+        Keybind {
+            key: 0,
+            alt: has_modifier(&modifiers, VirtualKey::Menu.0 as _),
+            ctrl: has_modifier(&modifiers, VirtualKey::Control.0 as _),
+            shift: has_modifier(&modifiers, VirtualKey::Shift.0 as _),
+        }
+    } else {
+        Keybind::without_modifiers(0)
+    };
+    let buddy = Buddy::lock();
+
+    macro_rules! register_keybind {
+        ( $id:literal, $window:ident) => {
+            register_keybind_with_struct(
+                $id,
+                keybind_handler!(|_, released| {
+                    if !released {
+                        Buddy::lock().$window.toggle_visibility()
+                    }
+                }),
+                keybind_for(buddy.$window.options.hotkey, &base),
+            )
+            .revert_on_unload();
+        };
+    }
+
+    register_keybind!("BUDDY_MULTI", multi_view);
+    register_keybind!("BUDDY_CASTS", cast_log);
+    register_keybind!("BUDDY_BUFFS", buff_log);
+    register_keybind!("BUDDY_BREAKBAR", breakbar_log);
+    register_keybind!("BUDDY_TRANSFER", transfer_log);
+}
+
+fn keybind_for(virtual_key: Option<u32>, base: &Keybind) -> Keybind {
     if let Some(virtual_key) = virtual_key {
         let scan_code = unsafe { MapVirtualKeyA(virtual_key, MAPVK_VK_TO_VSC) };
         Keybind {
             key: scan_code as _,
-            alt: has_modifier(&modifiers, VirtualKey::Menu.0 as _),
-            ctrl: has_modifier(&modifiers, VirtualKey::Control.0 as _),
-            shift: has_modifier(&modifiers, VirtualKey::Shift.0 as _),
+            ..*base
         }
     } else {
         Keybind::without_modifiers(0)
