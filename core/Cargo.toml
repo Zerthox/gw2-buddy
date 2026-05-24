@@ -3,7 +3,7 @@ name = "buddy"
 version = "0.7.0"
 edition = "2024"
 authors = ["Zerthox"]
-repository = "https://github.com/zerthox/arcdps-buddy"
+repository = "https://github.com/zerthox/gw2-buddy"
 
 [dependencies]
 arc_util = { workspace = true, features = ["serde", "settings"] }

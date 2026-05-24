@@ -26,7 +26,7 @@ arcdps::export! {
 static UPDATER: LazyLock<Mutex<Updater>> = LazyLock::new(|| {
     Mutex::new(Updater::unchecked(
         "Buddy",
-        Repository::new("zerthox", "arcdps-buddy"),
+        Repository::new("zerthox", "gw2-buddy"),
         Buddy::VERSION.parse().unwrap(),
     ))
 });
