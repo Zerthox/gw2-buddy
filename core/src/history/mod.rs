@@ -47,6 +47,11 @@ impl<T> History<T> {
         self.fights.front_mut()
     }
 
+    /// Whether the latest fight is still ongoing.
+    pub fn latest_fight_active(&self) -> bool {
+        self.latest_fight().is_some_and(|fight| !fight.ended())
+    }
+
     /// Returns a mutable reference to the fight at the given index.
     pub fn fight_at(&self, index: usize) -> Option<&Fight<T>> {
         self.fights.get(index)
@@ -138,9 +143,12 @@ impl<T> History<T> {
     where
         T: Default,
     {
-        match self.latest_fight_mut() {
-            Some(fight @ Fight { end: None, .. }) => fight.update_target(species, target),
-            _ => self.add_fight_with_target(time, species, target),
+        if let Some(fight) = self.latest_fight_mut()
+            && !fight.ended()
+        {
+            fight.update_target(species, target);
+        } else {
+            self.add_fight_with_target(time, species, target)
         }
     }
 
@@ -148,7 +156,9 @@ impl<T> History<T> {
     ///
     /// Ignored if the latest fight has already ended.
     pub fn end_latest_fight(&mut self, time: u64) {
-        if let Some(fight @ Fight { end: None, .. }) = self.latest_fight_mut() {
+        if let Some(fight) = self.latest_fight_mut()
+            && !fight.ended()
+        {
             let duration = fight.end(time);
             if self.settings.discard_at_end && duration < self.settings.min_duration {
                 self.fights.pop_front();

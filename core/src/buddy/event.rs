@@ -133,13 +133,15 @@ impl Buddy {
     }
 
     fn start_fight(&mut self, event: &Event, target: Option<&Agent>) {
+        let time = event.time;
         let species = event.src_agent as u32;
         log::debug!(
             "Fight start for {species}, target {:?}",
             target.map(|agent| agent.id)
         );
-        self.history
-            .add_fight_with_target(event.time, species, target);
+        if !self.history.latest_fight_active() {
+            self.history.add_fight_with_target(time, species, target);
+        }
     }
 
     fn fight_target(&mut self, event: &Event, target: Option<&Agent>) {
