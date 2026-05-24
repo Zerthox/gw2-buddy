@@ -21,4 +21,6 @@ jobs:
           path: target/release/arcdps_buddy.dll
       - uses: softprops/action-gh-release@v1
         with:
-          files: target/release/arcdps_buddy.dll
+          files: |
+            target/release/arcdps_buddy.dll
+            target/release/nexus_buddy.dll

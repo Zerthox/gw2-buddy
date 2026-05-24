@@ -6,13 +6,15 @@ on:
     branches:
       - main
     paths:
-      - src/**
-      - build.rs
+      - arcdps/**
+      - core/**
+      - nexus/**
       - Cargo.toml
   pull_request:
     paths:
-      - src/**
-      - build.rs
+      - arcdps/**
+      - core/**
+      - nexus/**
       - Cargo.toml
 
 jobs:

@@ -17,4 +17,6 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: arcdps_buddy
-          path: target/release/arcdps_buddy.dll
+          path: |
+            target/release/arcdps_buddy.dll
+            target/release/nexus_buddy.dll
