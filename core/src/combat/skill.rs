@@ -1,5 +1,5 @@
 use crate::data::SKILL_OVERRIDES;
-use std::collections::{hash_map::Entry, HashMap};
+use std::collections::{HashMap, hash_map::Entry};
 
 /// Skill map keeping skill information in memory.
 #[derive(Debug, Clone)]

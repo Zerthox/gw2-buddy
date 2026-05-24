@@ -1,5 +1,5 @@
 use crate::{
-    combat::{skill::SkillMap, CombatData},
+    combat::{CombatData, skill::SkillMap},
     history::History,
     ui::{format_time, scroll::AutoScroll},
 };

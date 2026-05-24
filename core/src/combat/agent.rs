@@ -1,9 +1,9 @@
-use super::{name_of, Player};
-use arc_util::colors::{with_alpha, GREEN, GREY, RED, YELLOW};
+use super::{Player, name_of};
+use arc_util::colors::{GREEN, GREY, RED, YELLOW, with_alpha};
 use arcdps::{
+    Profession,
     evtc::{self, AgentKind},
     exports::{Colors, CoreColor},
-    Profession,
 };
 use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, EnumIter, VariantArray, VariantNames};

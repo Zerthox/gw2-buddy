@@ -1,5 +1,5 @@
 use crate::{
-    combat::{agent::AgentFilter, CombatData},
+    combat::{CombatData, agent::AgentFilter},
     history::History,
     ui::{format_time, scroll::AutoScroll},
 };
@@ -7,8 +7,8 @@ use arc_util::{
     colors::{GREY, YELLOW},
     settings::HasSettings,
     ui::{
-        render::{ch_width, enum_combo_array},
         Component, Windowable,
+        render::{ch_width, enum_combo_array},
     },
 };
 use arcdps::{

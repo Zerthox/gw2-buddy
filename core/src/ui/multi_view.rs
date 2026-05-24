@@ -5,7 +5,7 @@ use super::{
     transfer_log::{TransferLog, TransferLogProps},
 };
 use crate::{
-    combat::{skill::SkillMap, CombatData},
+    combat::{CombatData, skill::SkillMap},
     data::SkillData,
     history::History,
 };

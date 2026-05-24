@@ -1,5 +1,5 @@
 use crate::{
-    combat::{cast::CastState, skill::SkillMap, CombatData},
+    combat::{CombatData, cast::CastState, skill::SkillMap},
     data::{SkillData, SkillHitCount, SkillHits},
     history::History,
     ui::{format_time, scroll::AutoScroll},
@@ -8,8 +8,8 @@ use arc_util::{
     colors::{CYAN, GREEN, GREY, RED, YELLOW},
     settings::HasSettings,
     ui::{
-        render::{ch_width, enum_combo_array},
         Component, Windowable,
+        render::{ch_width, enum_combo_array},
     },
 };
 use arcdps::{
