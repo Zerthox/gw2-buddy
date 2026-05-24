@@ -81,10 +81,11 @@ impl Buddy {
                 }
             }
 
-            StateChange::BuffRemoveAll => {
+            StateChange::BuffRemoveSingle => {
                 if let Some(dst) = dst {
                     // only care about removes from self to self
-                    if src_self
+                    if event.get_buff_remove() == BuffRemove::Manual
+                        && src_self
                         && dst.is_self != 0
                         && let Ok(condi) = event.skill_id.try_into()
                     {

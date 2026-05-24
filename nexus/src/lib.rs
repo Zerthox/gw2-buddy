@@ -5,7 +5,7 @@ use nexus::{
     event::{
         ADDON_LOADED,
         arc::{
-            AgentUpdate, COMBAT_LOCAL, CombatData, REPLAY_SELF_JOIN, REPLAY_SQUAD_JOIN, SELF_JOIN,
+            AgentUpdate, COMBAT_SQUAD, CombatData, REPLAY_SELF_JOIN, REPLAY_SQUAD_JOIN, SELF_JOIN,
             SELF_LEAVE, SQUAD_JOIN, SQUAD_LEAVE,
         },
     },
@@ -82,7 +82,7 @@ fn try_init() -> bool {
                     ..
                 } = exports::modifiers();
                 if modifier1 != 0 || modifier2 != 0 {
-                    log::debug!("Migrating keybinds with modifiers {modifier1} {modifier2}");
+                    log::info!("Migrating keybinds with modifiers {modifier1} {modifier2}");
                     register_keybinds(Some(&modifiers));
                     return;
                 }
@@ -91,7 +91,7 @@ fn try_init() -> bool {
             register_keybinds(None);
         });
 
-        COMBAT_LOCAL
+        COMBAT_SQUAD
             .subscribe(event_consume!(|data: Option<&CombatData>| {
                 if let Some(data) = data
                     && let Some(src) = data.src()

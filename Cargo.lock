@@ -35,7 +35,7 @@ dependencies = [
 [[package]]
 name = "arcdps"
 version = "0.23.0"
-source = "git+https://github.com/zerthox/arcdps-rs#d1ce764a536c4648cfa3633328fa65ec118f807a"
+source = "git+https://github.com/zerthox/arcdps-rs#5d1b15283666c61d54b6a60222c311c119d9ca88"
 dependencies = [
  "arcdps-imgui",
  "arcdps_codegen",
@@ -84,7 +84,7 @@ dependencies = [
 [[package]]
 name = "arcdps_codegen"
 version = "0.12.1"
-source = "git+https://github.com/zerthox/arcdps-rs#d1ce764a536c4648cfa3633328fa65ec118f807a"
+source = "git+https://github.com/zerthox/arcdps-rs#5d1b15283666c61d54b6a60222c311c119d9ca88"
 dependencies = [
  "cfg-if",
  "paste",
@@ -207,7 +207,7 @@ dependencies = [
 [[package]]
 name = "evtc"
 version = "0.15.0"
-source = "git+https://github.com/zerthox/arcdps-rs#d1ce764a536c4648cfa3633328fa65ec118f807a"
+source = "git+https://github.com/zerthox/arcdps-rs#5d1b15283666c61d54b6a60222c311c119d9ca88"
 dependencies = [
  "bitflags 2.11.1",
  "memoffset",
@@ -319,7 +319,7 @@ dependencies = [
  "js-sys",
  "log",
  "wasm-bindgen",
- "windows-core 0.62.2",
+ "windows-core 0.59.0",
 ]
 
 [[package]]
@@ -971,7 +971,7 @@ checksum = "ebc1c04c71510c7f702b52b7c350734c9ff1295c464a03335b00bb84fc54f853"
 [[package]]
 name = "unofficial_extras"
 version = "0.1.0"
-source = "git+https://github.com/zerthox/arcdps-rs#d1ce764a536c4648cfa3633328fa65ec118f807a"
+source = "git+https://github.com/zerthox/arcdps-rs#5d1b15283666c61d54b6a60222c311c119d9ca88"
 dependencies = [
  "bitflags 2.11.1",
  "chrono",
