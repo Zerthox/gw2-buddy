@@ -35,7 +35,7 @@ dependencies = [
 [[package]]
 name = "arcdps"
 version = "0.23.0"
-source = "git+https://github.com/zerthox/arcdps-rs#5d1b15283666c61d54b6a60222c311c119d9ca88"
+source = "git+https://github.com/zerthox/arcdps-rs#275bc456b84558498a22d023ebd437435b176d7d"
 dependencies = [
  "arcdps-imgui",
  "arcdps_codegen",
@@ -84,7 +84,7 @@ dependencies = [
 [[package]]
 name = "arcdps_codegen"
 version = "0.12.1"
-source = "git+https://github.com/zerthox/arcdps-rs#5d1b15283666c61d54b6a60222c311c119d9ca88"
+source = "git+https://github.com/zerthox/arcdps-rs#275bc456b84558498a22d023ebd437435b176d7d"
 dependencies = [
  "cfg-if",
  "paste",
@@ -207,7 +207,7 @@ dependencies = [
 [[package]]
 name = "evtc"
 version = "0.15.0"
-source = "git+https://github.com/zerthox/arcdps-rs#5d1b15283666c61d54b6a60222c311c119d9ca88"
+source = "git+https://github.com/zerthox/arcdps-rs#275bc456b84558498a22d023ebd437435b176d7d"
 dependencies = [
  "bitflags 2.11.1",
  "memoffset",
@@ -319,7 +319,7 @@ dependencies = [
  "js-sys",
  "log",
  "wasm-bindgen",
- "windows-core 0.59.0",
+ "windows-core 0.62.2",
 ]
 
 [[package]]
@@ -424,9 +424,9 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.4.29"
+version = "0.4.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e5032e24019045c762d3c0f28f5b6b8bbf38563a65908389bf7978758920897"
+checksum = "616ec5685824bcc94416c6d4a7a446eea774a31efd7062c8480ba6fd06d7a6e5"
 
 [[package]]
 name = "memchr"
@@ -971,7 +971,7 @@ checksum = "ebc1c04c71510c7f702b52b7c350734c9ff1295c464a03335b00bb84fc54f853"
 [[package]]
 name = "unofficial_extras"
 version = "0.1.0"
-source = "git+https://github.com/zerthox/arcdps-rs#5d1b15283666c61d54b6a60222c311c119d9ca88"
+source = "git+https://github.com/zerthox/arcdps-rs#275bc456b84558498a22d023ebd437435b176d7d"
 dependencies = [
  "bitflags 2.11.1",
  "chrono",
