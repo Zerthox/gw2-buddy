@@ -10,16 +10,16 @@ jobs:
     name: Release
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-pc-windows-msvc
       - run: cargo build --release --all-targets
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v7
         with:
           name: arcdps_buddy
           path: target/release/arcdps_buddy.dll
-      - uses: softprops/action-gh-release@v1
+      - uses: softprops/action-gh-release@v3
         with:
           files: |
             target/release/arcdps_buddy.dll
