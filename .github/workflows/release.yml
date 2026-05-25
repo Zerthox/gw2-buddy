@@ -5,6 +5,13 @@ on:
   release:
     types: [published]
 
+env:
+  build_files: |
+    target/release/arcdps_buddy.dll
+    target/release/arcdps_buddy.pdb
+    target/release/nexus_buddy.dll
+    target/release/nexus_buddy.pdb
+
 jobs:
   release:
     name: Release
@@ -14,13 +21,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-pc-windows-msvc
-      - run: cargo build --release --all-targets
+      - run: cargo build --release --workspace
       - uses: actions/upload-artifact@v7
         with:
-          name: arcdps_buddy
-          path: target/release/arcdps_buddy.dll
+          name: buddy
+          path: ${{ env.build_files }}
       - uses: softprops/action-gh-release@v3
         with:
-          files: |
-            target/release/arcdps_buddy.dll
-            target/release/nexus_buddy.dll
+          files: ${{ env.build_files }}
