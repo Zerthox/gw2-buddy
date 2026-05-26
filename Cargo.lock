@@ -71,7 +71,7 @@ dependencies = [
 
 [[package]]
 name = "arcdps_buddy"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "arc_util",
  "arcdps",
@@ -116,7 +116,7 @@ dependencies = [
 
 [[package]]
 name = "buddy"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "arc_util",
  "arcdps",
@@ -474,7 +474,7 @@ dependencies = [
 [[package]]
 name = "nexus"
 version = "0.12.0"
-source = "git+https://github.com/zerthox/nexus-rs#389c3415a057db1074ca380ab8121c529b2c1e35"
+source = "git+https://github.com/zerthox/nexus-rs#ec58155c1de4f83118c7f70592d6f03a8c1d7225"
 dependencies = [
  "arcdps-imgui",
  "bitflags 2.11.1",
@@ -488,7 +488,7 @@ dependencies = [
 
 [[package]]
 name = "nexus_buddy"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "arc_util",
  "arcdps",
@@ -502,7 +502,7 @@ dependencies = [
 [[package]]
 name = "nexus_codegen"
 version = "0.3.2"
-source = "git+https://github.com/zerthox/nexus-rs#389c3415a057db1074ca380ab8121c529b2c1e35"
+source = "git+https://github.com/zerthox/nexus-rs#ec58155c1de4f83118c7f70592d6f03a8c1d7225"
 dependencies = [
  "cfg-if",
  "paste",

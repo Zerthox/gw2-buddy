@@ -2,6 +2,7 @@ use arc_util::{colors::RED, ui::Hideable};
 use arcdps::exports::{self, Modifiers};
 use buddy::{Buddy, combat::Player};
 use nexus::{
+    UpdateProvider,
     event::{
         ADDON_LOADED,
         arc::{
@@ -24,6 +25,7 @@ nexus::export! {
     name: "Buddy",
     signature: -0x74c13713,
     load,
+    provider: UpdateProvider::GitHub,
 }
 
 const ARC_SIG: i32 = -0x96b2f;
